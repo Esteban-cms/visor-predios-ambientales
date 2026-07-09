@@ -1,98 +1,840 @@
 <!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="stylesheet" href="css/leaflet.css">
-    <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
-    <link rel="stylesheet" href="css/qgis2web.css">
-    <link rel="stylesheet" href="css/fontawesome-all.min.css">
-    <link rel="stylesheet" href="css/leaflet.photon.css">
-    <style>
+<html lang="es">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <style>
+        :root {
+            --field-green: #176b4d;
+            --field-green-dark: #0f4c38;
+            --field-green-soft: #e6f3ee;
+            --field-blue: #1769e0;
+            --field-blue-soft: #eaf2ff;
+            --field-orange: #f59f00;
+            --field-red: #d94848;
+            --field-ink: #10221b;
+            --field-muted: #667a72;
+            --field-line: rgba(16, 34, 27, 0.12);
+            --field-card: rgba(255, 255, 255, 0.94);
+            --field-shadow: 0 18px 45px rgba(12, 42, 30, 0.20);
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
         html, body, #map {
             width: 100%;
             height: 100%;
+            padding: 0;
             margin: 0;
+        }
+
+        html, body {
+            overflow: hidden;
+            overscroll-behavior: none;
+            background: #edf4ef;
+            color: var(--field-ink);
+            font-family: "Aptos", "Segoe UI", "Trebuchet MS", sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        #map {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            background: #dbe8df;
+        }
+
+        .leaflet-popup-content-wrapper {
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+        }
+
+        .leaflet-popup-content {
+            margin: 14px;
+            max-width: min(340px, 82vw);
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        .leaflet-popup-content table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        .leaflet-popup-content th,
+        .leaflet-popup-content td {
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            padding: 6px 4px;
+            vertical-align: top;
+            word-break: break-word;
+        }
+
+        .leaflet-popup-content th {
+            text-align: left;
+            color: var(--field-muted);
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .leaflet-top.leaflet-left {
+            top: calc(168px + var(--safe-top));
+            left: 10px;
+        }
+
+        .leaflet-control-zoom a {
+            width: 44px !important;
+            height: 44px !important;
+            line-height: 44px !important;
+            border-radius: 14px !important;
+            color: var(--field-green-dark) !important;
+        }
+
+        .field-app {
+            position: fixed;
+            inset: 0;
+            z-index: 900;
+            pointer-events: none;
+        }
+
+        .field-app * {
+            box-sizing: border-box;
+        }
+
+        .field-topbar,
+        .field-search,
+        .field-toolbar,
+        .field-compass,
+        .field-status-chip,
+        .field-measure-chip,
+        .field-bottom-panel,
+        .field-floating-panel,
+        .field-modal {
+            pointer-events: auto;
+        }
+
+        .field-topbar {
+            position: absolute;
+            top: calc(10px + var(--safe-top));
+            left: 10px;
+            right: 10px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 12px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(240,249,245,0.94));
+            border: 1px solid rgba(255,255,255,0.85);
+            border-radius: 22px;
+            box-shadow: var(--field-shadow);
+            backdrop-filter: blur(16px);
+        }
+
+        .field-brand small {
+            display: block;
+            color: var(--field-muted);
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 800;
+        }
+
+        .field-brand strong {
+            display: block;
+            margin-top: 2px;
+            color: var(--field-ink);
+            font-size: 18px;
+            letter-spacing: -0.03em;
+        }
+
+        .field-search {
+            position: absolute;
+            top: calc(82px + var(--safe-top));
+            left: 10px;
+            right: 10px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+            padding: 10px 12px 12px;
+            background: var(--field-card);
+            border: 1px solid rgba(255,255,255,0.86);
+            border-radius: 20px;
+            box-shadow: 0 12px 34px rgba(12, 42, 30, 0.15);
+            backdrop-filter: blur(15px);
+        }
+
+        .field-label {
+            display: flex;
+            justify-content: space-between;
+            color: var(--field-green-dark);
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .field-select,
+        .field-input,
+        .field-textarea {
+            width: 100%;
+            min-height: 48px;
+            border: 1px solid var(--field-line);
+            border-radius: 16px;
+            background: #fff;
+            color: var(--field-ink);
+            padding: 0 14px;
+            font-size: 16px;
+            outline: none;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.8);
+        }
+
+        .field-select:focus,
+        .field-input:focus,
+        .field-textarea:focus {
+            border-color: rgba(23, 107, 77, 0.55);
+            box-shadow: 0 0 0 4px rgba(23, 107, 77, 0.12);
+        }
+
+        .field-textarea {
+            min-height: 86px;
+            padding-top: 12px;
+            resize: vertical;
+        }
+
+        .field-btn {
+            min-height: 48px;
+            border: 0;
+            border-radius: 16px;
+            padding: 0 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--field-ink);
+            background: #fff;
+            box-shadow: 0 8px 20px rgba(12, 42, 30, 0.14);
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease;
+            user-select: none;
+        }
+
+        .field-btn:active {
+            transform: scale(0.97);
+            box-shadow: 0 3px 10px rgba(12, 42, 30, 0.16);
+        }
+
+        .field-btn.primary,
+        .field-btn.active {
+            background: var(--field-green);
+            color: #fff;
+        }
+
+        .field-btn.blue {
+            background: var(--field-blue);
+            color: #fff;
+        }
+
+        .field-btn.warn {
+            background: #fff4dc;
+            color: #8a5700;
+        }
+
+        .field-btn.danger {
+            background: #fff0f0;
+            color: var(--field-red);
+        }
+
+        .field-btn.small {
+            min-height: 40px;
+            border-radius: 14px;
+            font-size: 13px;
+            padding: 0 12px;
+        }
+
+        .field-icon {
+            width: 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .field-toolbar {
+            position: absolute;
+            top: calc(214px + var(--safe-top));
+            right: 10px;
+            bottom: calc(112px + var(--safe-bottom));
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            overflow-y: auto;
+            padding: 2px 2px 8px 10px;
+            scrollbar-width: none;
+        }
+
+        .field-toolbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .field-toolbar .field-btn {
+            width: 58px;
+            min-height: 54px;
+            padding: 0;
+            flex-direction: column;
+            gap: 2px;
+            border-radius: 18px;
+            font-size: 10px;
+            line-height: 1.1;
+        }
+
+        .field-toolbar .field-icon {
+            font-size: 18px;
+        }
+
+        .field-status-chip,
+        .field-measure-chip {
+            position: absolute;
+            left: 10px;
+            max-width: calc(100vw - 88px);
+            padding: 8px 12px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.93);
+            color: var(--field-ink);
+            box-shadow: 0 8px 20px rgba(12, 42, 30, 0.14);
+            border: 1px solid rgba(255,255,255,0.86);
+            font-size: 12px;
+            font-weight: 800;
+            backdrop-filter: blur(14px);
+        }
+
+        .field-status-chip {
+            top: calc(214px + var(--safe-top));
+        }
+
+        .field-measure-chip {
+            top: calc(262px + var(--safe-top));
+            display: none;
+        }
+
+        .field-measure-chip.visible {
+            display: block;
+        }
+
+        .field-compass {
+            position: absolute;
+            left: 10px;
+            top: calc(315px + var(--safe-top));
+            width: 74px;
+            height: 92px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            padding: 7px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.94);
+            border: 1px solid rgba(255,255,255,0.88);
+            box-shadow: 0 10px 28px rgba(12, 42, 30, 0.16);
+            backdrop-filter: blur(14px);
+        }
+
+        .field-compass-ring {
+            position: relative;
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            border: 2px solid rgba(23, 107, 77, 0.28);
+            background: radial-gradient(circle at center, #ffffff 0 40%, var(--field-green-soft) 41% 100%);
+        }
+
+        .field-compass-n {
+            position: absolute;
+            top: 3px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--field-red);
+            font-size: 10px;
+            font-weight: 900;
+        }
+
+        .field-compass-needle {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 4px;
+            height: 42px;
+            margin-left: -2px;
+            margin-top: -21px;
+            border-radius: 4px;
+            background: linear-gradient(to bottom, var(--field-red) 0 48%, var(--field-green-dark) 52% 100%);
+            transform-origin: 50% 50%;
+            transition: transform 120ms linear;
+        }
+
+        .field-compass-text {
+            color: var(--field-muted);
+            font-size: 11px;
+            font-weight: 900;
+        }
+
+        .field-bottom-panel {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            min-height: 266px;
+            max-height: min(70vh, 540px);
+            padding: 10px 12px calc(14px + var(--safe-bottom));
+            background: rgba(255, 255, 255, 0.97);
+            border-radius: 28px 28px 0 0;
+            box-shadow: 0 -18px 50px rgba(12, 42, 30, 0.22);
+            transform: translateY(calc(100% - 88px - var(--safe-bottom)));
+            transition: transform 230ms cubic-bezier(.2,.8,.2,1);
+            backdrop-filter: blur(18px);
+        }
+
+        .field-bottom-panel.open {
+            transform: translateY(0);
+        }
+
+        .field-panel-handle {
+            width: 54px;
+            height: 5px;
+            border: 0;
+            border-radius: 999px;
+            background: rgba(16, 34, 27, 0.22);
+            display: block;
+            margin: 0 auto 10px;
             padding: 0;
         }
-        #panelBuscador{
-            position:absolute;
-            top:10px;
-            left:10px;
-            z-index:9999;
-            background:#ffffff;
-            padding:12px;
-            width:260px;
-            border-radius:10px;
-            box-shadow:0 2px 10px rgba(0,0,0,.35);
-            font-family:Arial, Helvetica, sans-serif;
+
+        .field-panel-title {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 10px;
         }
-        #panelBuscador h3{
-            margin:0 0 10px 0;
-            font-size:16px;
-            text-align:center;
+
+        .field-panel-title h2 {
+            margin: 0;
+            font-size: 18px;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
         }
-        #buscarPredio{
-            width:100%;
-            padding:8px;
-            margin-bottom:8px;
-            border:1px solid #ccc;
-            border-radius:5px;
+
+        .field-panel-title p {
+            margin: 3px 0 0;
+            color: var(--field-muted);
+            font-size: 12px;
+            font-weight: 700;
         }
-        #btnUbicacion,
-        #btnInicio{
-            width:100%;
-            padding:8px;
-            margin-top:6px;
-            border:none;
-            border-radius:5px;
-            background:#2E7D32;
-            color:white;
-            cursor:pointer;
-            font-size:14px;
+
+        .field-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            overflow-y: auto;
+            max-height: calc(min(70vh, 540px) - 102px);
+            padding-bottom: 6px;
         }
-        #btnUbicacion:hover,
-        #btnInicio:hover{
-            background:#1B5E20;
+
+        .field-info-card {
+            min-height: 62px;
+            padding: 10px;
+            border-radius: 18px;
+            background: #f6faf7;
+            border: 1px solid var(--field-line);
         }
-    </style>
-    <title>Predios Ambientales</title>
-</head>
-<body>
-<div id="panelBuscador">
-    <h3>🏡 Predios Ambientales</h3>
-    <select id="buscarPredio">
-        <option value="">Seleccione un predio</option>
-    </select>
-    <button id="btnUbicacion">📍 Mi ubicación</button>
-    <button id="btnInicio">🏠 Vista general</button>
-</div>
-<div id="map"></div>
-<script src="js/qgis2web_expressions.js"></script>
-<script src="js/leaflet.js"></script>
-<script src="js/L.Control.Layers.Tree.min.js"></script>
-<script src="js/leaflet.rotatedMarker.js"></script>
-<script src="js/leaflet.pattern.js"></script>
-<script src="js/leaflet-hash.js"></script>
-<script src="js/Autolinker.min.js"></script>
-<script src="js/rbush.min.js"></script>
-<script src="js/labelgun.min.js"></script>
-<script src="js/labels.js"></script>
-<script src="js/leaflet.photon.js"></script>
-<script src="data/EstructuraPredial_1.js"></script>
-<script src="data/Veredas_2.js"></script>
-<script src="data/Prediosadquiridosconfinesambientales7_3.js"></script>
-<script src="data/Prediosadquiridosconfinesambientales6_4.js"></script>
-<script src="data/Prediosadquiridosconfinesambientales5_5.js"></script>
-<script src="data/Prediosadquiridosconfinesambientales4_6.js"></script>
-<script src="data/Prediosadquiridosconfinesambientales3_7.js"></script>
-<script src="data/Prediosadquiridosconfinesambientales2_8.js"></script>
-<script src="data/Prediosadquiridosconfinesambientales1_9.js"></script>
-<script>
-var map = L.map('map', {
+
+        .field-info-card.wide {
+            grid-column: 1 / -1;
+        }
+
+        .field-info-card span {
+            display: block;
+            margin-bottom: 4px;
+            color: var(--field-muted);
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .field-info-card strong {
+            display: block;
+            color: var(--field-ink);
+            font-size: 14px;
+            word-break: break-word;
+        }
+
+        .field-floating-panel,
+        .field-modal {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+            background: rgba(16, 34, 27, 0.24);
+            backdrop-filter: blur(4px);
+        }
+
+        .field-floating-panel.open,
+        .field-modal.open {
+            display: flex;
+        }
+
+        .field-sheet {
+            width: min(540px, calc(100vw - 20px));
+            max-height: min(78vh, 620px);
+            margin-bottom: calc(10px + var(--safe-bottom));
+            padding: 14px;
+            border-radius: 26px;
+            background: #fff;
+            box-shadow: 0 22px 60px rgba(0,0,0,0.28);
+            overflow: auto;
+        }
+
+        .field-sheet-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .field-sheet-header h3 {
+            margin: 0;
+            font-size: 18px;
+            letter-spacing: -0.03em;
+        }
+
+        .field-layer-list {
+            display: grid;
+            gap: 8px;
+        }
+
+        .field-check-row {
+            min-height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 16px;
+            background: #f7faf8;
+            border: 1px solid var(--field-line);
+            font-weight: 850;
+        }
+
+        .field-check-row input {
+            width: 24px;
+            height: 24px;
+            accent-color: var(--field-green);
+        }
+
+        .field-form {
+            display: grid;
+            gap: 12px;
+        }
+
+        .field-form-row {
+            display: grid;
+            gap: 6px;
+        }
+
+        .field-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 4px;
+        }
+
+        .field-point-icon {
+            width: 34px !important;
+            height: 34px !important;
+            border-radius: 50% 50% 50% 8px;
+            transform: rotate(-45deg);
+            background: var(--field-green);
+            border: 3px solid #fff;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.28);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .field-point-icon span {
+            transform: rotate(45deg);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .field-photo-preview,
+        .field-popup-photo {
+            width: 100%;
+            max-height: 210px;
+            object-fit: cover;
+            border-radius: 14px;
+            margin-top: 8px;
+            border: 1px solid var(--field-line);
+        }
+
+        .field-popup-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .field-popup-actions button {
+            min-height: 38px;
+            border: 0;
+            border-radius: 12px;
+            font-weight: 850;
+            background: var(--field-green-soft);
+            color: var(--field-green-dark);
+        }
+
+        .field-popup-actions button.danger {
+            background: #fff0f0;
+            color: var(--field-red);
+        }
+
+        .field-measure-label {
+            border: 0 !important;
+            background: rgba(16, 34, 27, 0.88) !important;
+            color: #fff !important;
+            border-radius: 999px !important;
+            padding: 4px 8px !important;
+            font-size: 11px !important;
+            font-weight: 900 !important;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.22);
+        }
+
+        @media (min-width: 760px) {
+            .field-topbar,
+            .field-search {
+                left: 18px;
+                right: auto;
+                width: 390px;
+            }
+            .field-toolbar {
+                right: 18px;
+            }
+            .field-bottom-panel {
+                left: 18px;
+                right: auto;
+                bottom: 18px;
+                width: 420px;
+                border-radius: 28px;
+                padding-bottom: 14px;
+                transform: translateY(calc(100% - 86px));
+            }
+            .field-bottom-panel.open {
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-height: 680px) {
+            .field-toolbar {
+                top: calc(188px + var(--safe-top));
+            }
+            .field-status-chip {
+                display: none;
+            }
+            .field-compass {
+                top: calc(198px + var(--safe-top));
+            }
+        }
+        </style>
+        <title>Visor Predial de Campo</title>
+    </head>
+    <body>
+        <div id="map"></div>
+
+        <div class="field-app" id="fieldAppShell" aria-live="polite">
+            <header class="field-topbar">
+                <div class="field-brand">
+                    <small>Levantamiento de campo</small>
+                    <strong>Visor Predial</strong>
+                </div>
+                <button type="button" class="field-btn small" id="fieldLayersBtn" aria-label="Abrir panel de capas">
+                    <span class="field-icon"><i class="fas fa-layer-group"></i></span>Capas
+                </button>
+            </header>
+
+            <section class="field-search" aria-label="Buscador de predios">
+                <label class="field-label" for="fieldParcelSelect">
+                    <span>Seleccionar predio</span>
+                    <span id="fieldParcelCount">0 predios</span>
+                </label>
+                <select id="fieldParcelSelect" class="field-select">
+                    <option value="">Cargando predios...</option>
+                </select>
+            </section>
+
+            <div class="field-status-chip" id="fieldGpsStatus">GPS inactivo</div>
+            <div class="field-measure-chip" id="fieldMeasureInfo">Medición lista</div>
+
+            <button type="button" class="field-compass" id="fieldCompass" aria-label="Brújula. Tocar para activar en iPhone">
+                <span class="field-compass-ring">
+                    <span class="field-compass-n">N</span>
+                    <span class="field-compass-needle" id="fieldCompassNeedle"></span>
+                </span>
+                <span class="field-compass-text" id="fieldCompassText">--°</span>
+            </button>
+
+            <nav class="field-toolbar" aria-label="Herramientas de campo">
+                <button type="button" class="field-btn blue" id="fieldFollowBtn" aria-label="Seguir mi ubicación">
+                    <span class="field-icon"><i class="fas fa-location-arrow"></i></span><span>GPS</span>
+                </button>
+                <button type="button" class="field-btn" id="fieldMeasureBtn" aria-label="Medir distancia">
+                    <span class="field-icon"><i class="fas fa-ruler"></i></span><span>Medir</span>
+                </button>
+                <button type="button" class="field-btn danger" id="fieldClearMeasureBtn" aria-label="Borrar medición">
+                    <span class="field-icon"><i class="fas fa-eraser"></i></span><span>Borrar</span>
+                </button>
+                <button type="button" class="field-btn primary" id="fieldNewPointBtn" aria-label="Nuevo punto de referencia">
+                    <span class="field-icon"><i class="fas fa-map-marker-alt"></i></span><span>Punto</span>
+                </button>
+                <button type="button" class="field-btn warn" id="fieldRouteBtn" aria-label="Ir al predio seleccionado">
+                    <span class="field-icon"><i class="fas fa-route"></i></span><span>Ir</span>
+                </button>
+                <button type="button" class="field-btn" id="fieldExportBtn" aria-label="Exportar puntos">
+                    <span class="field-icon"><i class="fas fa-file-export"></i></span><span>Exportar</span>
+                </button>
+                <button type="button" class="field-btn" id="fieldImportBtn" aria-label="Importar GeoJSON">
+                    <span class="field-icon"><i class="fas fa-file-import"></i></span><span>Importar</span>
+                </button>
+                <input type="file" id="fieldImportFile" accept=".geojson,.json,application/geo+json,application/json" hidden>
+            </nav>
+
+            <section class="field-bottom-panel" id="fieldInfoPanel" aria-label="Información del predio seleccionado">
+                <button type="button" class="field-panel-handle" id="fieldPanelHandle" aria-label="Abrir o cerrar información"></button>
+                <div class="field-panel-title">
+                    <div>
+                        <h2 id="fieldPanelTitle">Seleccione un predio</h2>
+                        <p id="fieldPanelSubtitle">La información del predio aparecerá aquí.</p>
+                    </div>
+                    <button type="button" class="field-btn small" id="fieldPanelToggle">Ver</button>
+                </div>
+                <div class="field-info-grid" id="fieldInfoGrid"></div>
+            </section>
+
+            <section class="field-floating-panel" id="fieldLayerPanel" aria-label="Panel de capas">
+                <div class="field-sheet">
+                    <div class="field-sheet-header">
+                        <h3>Capas del mapa</h3>
+                        <button type="button" class="field-btn small" id="fieldCloseLayers">Cerrar</button>
+                    </div>
+                    <div class="field-layer-list" id="fieldLayerList"></div>
+                </div>
+            </section>
+
+            <section class="field-floating-panel" id="fieldExportPanel" aria-label="Panel de exportación">
+                <div class="field-sheet">
+                    <div class="field-sheet-header">
+                        <h3>Exportar puntos</h3>
+                        <button type="button" class="field-btn small" id="fieldCloseExport">Cerrar</button>
+                    </div>
+                    <div class="field-actions">
+                        <button type="button" class="field-btn primary" id="fieldExportGeojson">GeoJSON</button>
+                        <button type="button" class="field-btn primary" id="fieldExportKml">KML</button>
+                        <button type="button" class="field-btn primary" id="fieldExportCsv">CSV</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="field-modal" id="fieldPointModal" aria-label="Nuevo punto de referencia">
+                <div class="field-sheet">
+                    <div class="field-sheet-header">
+                        <h3>Nuevo punto</h3>
+                        <button type="button" class="field-btn small" id="fieldClosePointModal">Cerrar</button>
+                    </div>
+                    <form class="field-form" id="fieldPointForm">
+                        <div class="field-form-row">
+                            <label class="field-label" for="fieldPointName"><span>Nombre</span></label>
+                            <input class="field-input" id="fieldPointName" name="nombre" required autocomplete="off" placeholder="Nombre del punto">
+                        </div>
+                        <div class="field-form-row">
+                            <label class="field-label" for="fieldPointCategory"><span>Categoría</span></label>
+                            <select class="field-select" id="fieldPointCategory" name="categoria" required>
+                                <option>Entrada</option>
+                                <option>Portón</option>
+                                <option>Casa</option>
+                                <option>Árbol</option>
+                                <option>Nacimiento</option>
+                                <option>Quebrada</option>
+                                <option>Puente</option>
+                                <option>Cerca</option>
+                                <option>Observación</option>
+                                <option>Otro</option>
+                            </select>
+                        </div>
+                        <div class="field-form-row">
+                            <label class="field-label" for="fieldPointObs"><span>Observaciones</span></label>
+                            <textarea class="field-textarea" id="fieldPointObs" name="observaciones" placeholder="Observaciones del punto"></textarea>
+                        </div>
+                        <div class="field-form-row">
+                            <label class="field-label" for="fieldPointPhoto"><span>Fotografía</span><span>opcional</span></label>
+                            <input class="field-input" id="fieldPointPhoto" name="foto" type="file" accept="image/*" capture="environment">
+                        </div>
+                        <div class="field-actions">
+                            <button type="button" class="field-btn danger" id="fieldCancelPoint">Cancelar</button>
+                            <button type="submit" class="field-btn primary">Guardar punto</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="data/EstructuraPredial_1.js"></script>
+        <script src="data/Veredas_2.js"></script>
+        <script src="data/Prediosadquiridosconfinesambientales7_3.js"></script>
+        <script src="data/Prediosadquiridosconfinesambientales6_4.js"></script>
+        <script src="data/Prediosadquiridosconfinesambientales5_5.js"></script>
+        <script src="data/Prediosadquiridosconfinesambientales4_6.js"></script>
+        <script src="data/Prediosadquiridosconfinesambientales3_7.js"></script>
+        <script src="data/Prediosadquiridosconfinesambientales2_8.js"></script>
+        <script src="data/Prediosadquiridosconfinesambientales1_9.js"></script>
+        <script>
+        window.json_EstructuraPredial_1 = window.json_EstructuraPredial_1 || {"type":"FeatureCollection","features":[]};
+        window.json_Veredas_2 = window.json_Veredas_2 || {"type":"FeatureCollection","features":[]};
+        window.json_Prediosadquiridosconfinesambientales7_3 = window.json_Prediosadquiridosconfinesambientales7_3 || {"type":"FeatureCollection","features":[]};
+        window.json_Prediosadquiridosconfinesambientales6_4 = window.json_Prediosadquiridosconfinesambientales6_4 || {"type":"FeatureCollection","features":[]};
+        window.json_Prediosadquiridosconfinesambientales5_5 = window.json_Prediosadquiridosconfinesambientales5_5 || {"type":"FeatureCollection","features":[]};
+        window.json_Prediosadquiridosconfinesambientales4_6 = window.json_Prediosadquiridosconfinesambientales4_6 || {"type":"FeatureCollection","features":[]};
+        window.json_Prediosadquiridosconfinesambientales3_7 = window.json_Prediosadquiridosconfinesambientales3_7 || {"type":"FeatureCollection","features":[]};
+        window.json_Prediosadquiridosconfinesambientales2_8 = window.json_Prediosadquiridosconfinesambientales2_8 || {"type":"FeatureCollection","features":[]};
+        window.json_Prediosadquiridosconfinesambientales1_9 = window.json_Prediosadquiridosconfinesambientales1_9 || {"type":"FeatureCollection","features":[]};
+        </script>
+        <script>
+        var map = L.map('map', {
             zoomControl:false, maxZoom:28, minZoom:1
         }).fitBounds([[7.079041223751184,-75.60160157487567],[7.130030702398053,-75.49171924839166]]);
         var hash = new L.Hash(map);
@@ -823,117 +1565,1057 @@ var map = L.map('map', {
         map.on("layerremove", function(){
             resetLabels([layer_Veredas_2]);
         });
-	// ===============================
-// BUSCADOR DE PREDIOS
-// ===============================
+        </script>        
 
-var capasPredios = [
-    layer_Prediosadquiridosconfinesambientales1_9,
-    layer_Prediosadquiridosconfinesambientales2_8,
-    layer_Prediosadquiridosconfinesambientales3_7,
-    layer_Prediosadquiridosconfinesambientales4_6,
-    layer_Prediosadquiridosconfinesambientales5_5,
-    layer_Prediosadquiridosconfinesambientales6_4,
-    layer_Prediosadquiridosconfinesambientales7_3
-];
+        <script>
+        (function () {
+            'use strict';
 
-var selector = document.getElementById("buscarPredio");
-
-capasPredios.forEach(function(capa){
-
-    capa.eachLayer(function(l){
-
-        var pk = l.feature.properties.PK_PREDIOS;
-
-        if(pk){
-
-            var opcion = document.createElement("option");
-            opcion.value = pk;
-            opcion.text = pk;
-
-            selector.appendChild(opcion);
-
-        }
-
-    });
-
-});
-
-var resaltado = null;
-
-selector.addEventListener("change",function(){
-
-    var pk = this.value;
-
-    if(resaltado){
-        map.removeLayer(resaltado);
-    }
-
-    capasPredios.forEach(function(capa){
-
-        capa.eachLayer(function(l){
-
-            if(l.feature.properties.PK_PREDIOS==pk){
-
-                map.fitBounds(l.getBounds());
-
-                resaltado=L.geoJSON(l.toGeoJSON(),{
-
-                    style:{
-                        color:"#ffff00",
-                        weight:5,
-                        fillOpacity:0.15
-                    }
-
-                }).addTo(map);
-
+            if (!window.L || typeof map === 'undefined') {
+                return;
             }
 
-        });
+            var STORAGE_KEY = 'qgis2web_campo_puntos_v1';
+            var EARTH_RADIUS = 6378137;
+            var state = {
+                predios: [],
+                selected: null,
+                watchId: null,
+                lastLocation: null,
+                gpsMarker: null,
+                gpsAccuracy: null,
+                gpsPanDone: false,
+                measureMode: false,
+                measurePoints: [],
+                measureTotal: 0,
+                measureLayer: L.layerGroup().addTo(map),
+                points: [],
+                pointMarkers: {},
+                pointsLayer: L.layerGroup().addTo(map),
+                routeLayer: L.layerGroup().addTo(map),
+                routeLine: null,
+                pendingPointLocation: null,
+                compassStarted: false
+            };
 
-    });
+            var el = {};
 
-});
+            function byId(id) {
+                return document.getElementById(id);
+            }
 
-// ===============================
-// BOTON MI UBICACION
-// ===============================
+            function cacheElements() {
+                el.parcelSelect = byId('fieldParcelSelect');
+                el.parcelCount = byId('fieldParcelCount');
+                el.layersBtn = byId('fieldLayersBtn');
+                el.layerPanel = byId('fieldLayerPanel');
+                el.closeLayers = byId('fieldCloseLayers');
+                el.layerList = byId('fieldLayerList');
+                el.followBtn = byId('fieldFollowBtn');
+                el.gpsStatus = byId('fieldGpsStatus');
+                el.measureBtn = byId('fieldMeasureBtn');
+                el.clearMeasureBtn = byId('fieldClearMeasureBtn');
+                el.measureInfo = byId('fieldMeasureInfo');
+                el.newPointBtn = byId('fieldNewPointBtn');
+                el.routeBtn = byId('fieldRouteBtn');
+                el.exportBtn = byId('fieldExportBtn');
+                el.exportPanel = byId('fieldExportPanel');
+                el.closeExport = byId('fieldCloseExport');
+                el.exportGeojson = byId('fieldExportGeojson');
+                el.exportKml = byId('fieldExportKml');
+                el.exportCsv = byId('fieldExportCsv');
+                el.importBtn = byId('fieldImportBtn');
+                el.importFile = byId('fieldImportFile');
+                el.infoPanel = byId('fieldInfoPanel');
+                el.panelHandle = byId('fieldPanelHandle');
+                el.panelToggle = byId('fieldPanelToggle');
+                el.panelTitle = byId('fieldPanelTitle');
+                el.panelSubtitle = byId('fieldPanelSubtitle');
+                el.infoGrid = byId('fieldInfoGrid');
+                el.compass = byId('fieldCompass');
+                el.compassNeedle = byId('fieldCompassNeedle');
+                el.compassText = byId('fieldCompassText');
+                el.pointModal = byId('fieldPointModal');
+                el.pointForm = byId('fieldPointForm');
+                el.closePointModal = byId('fieldClosePointModal');
+                el.cancelPoint = byId('fieldCancelPoint');
+                el.pointName = byId('fieldPointName');
+                el.pointCategory = byId('fieldPointCategory');
+                el.pointObs = byId('fieldPointObs');
+                el.pointPhoto = byId('fieldPointPhoto');
+            }
 
-document.getElementById("btnUbicacion").onclick=function(){
+            function getQgisLayers() {
+                return [
+                    { name: 'OpenStreetMap_0', layer: typeof layer_OpenStreetMap_0 !== 'undefined' ? layer_OpenStreetMap_0 : null, base: true },
+                    { name: 'EstructuraPredial_1', layer: typeof layer_EstructuraPredial_1 !== 'undefined' ? layer_EstructuraPredial_1 : null },
+                    { name: 'Veredas_2', layer: typeof layer_Veredas_2 !== 'undefined' ? layer_Veredas_2 : null },
+                    { name: 'Prediosadquiridosconfinesambientales7_3', layer: typeof layer_Prediosadquiridosconfinesambientales7_3 !== 'undefined' ? layer_Prediosadquiridosconfinesambientales7_3 : null },
+                    { name: 'Prediosadquiridosconfinesambientales6_4', layer: typeof layer_Prediosadquiridosconfinesambientales6_4 !== 'undefined' ? layer_Prediosadquiridosconfinesambientales6_4 : null },
+                    { name: 'Prediosadquiridosconfinesambientales5_5', layer: typeof layer_Prediosadquiridosconfinesambientales5_5 !== 'undefined' ? layer_Prediosadquiridosconfinesambientales5_5 : null },
+                    { name: 'Prediosadquiridosconfinesambientales4_6', layer: typeof layer_Prediosadquiridosconfinesambientales4_6 !== 'undefined' ? layer_Prediosadquiridosconfinesambientales4_6 : null },
+                    { name: 'Prediosadquiridosconfinesambientales3_7', layer: typeof layer_Prediosadquiridosconfinesambientales3_7 !== 'undefined' ? layer_Prediosadquiridosconfinesambientales3_7 : null },
+                    { name: 'Prediosadquiridosconfinesambientales2_8', layer: typeof layer_Prediosadquiridosconfinesambientales2_8 !== 'undefined' ? layer_Prediosadquiridosconfinesambientales2_8 : null },
+                    { name: 'Prediosadquiridosconfinesambientales1_9', layer: typeof layer_Prediosadquiridosconfinesambientales1_9 !== 'undefined' ? layer_Prediosadquiridosconfinesambientales1_9 : null }
+                ].filter(function (item) { return !!item.layer; });
+            }
 
-    map.locate({
-        setView:true,
-        maxZoom:18
-    });
+            function escapeHtml(value) {
+                return String(value == null ? '' : value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
 
-};
+            function normalizeText(value) {
+                return String(value == null ? '' : value).trim();
+            }
 
-map.on("locationfound",function(e){
+            function formatNumber(value, decimals) {
+                if (value == null || !isFinite(value)) return 'N/D';
+                return Number(value).toLocaleString('es-CO', {
+                    maximumFractionDigits: decimals,
+                    minimumFractionDigits: decimals
+                });
+            }
 
-    L.circleMarker(e.latlng,{
-        radius:8,
-        color:"blue",
-        fillColor:"#00BFFF",
-        fillOpacity:1
-    }).addTo(map);
+            function formatDistance(meters) {
+                if (meters == null || !isFinite(meters)) return 'N/D';
+                if (meters >= 1000) return formatNumber(meters / 1000, 2) + ' km';
+                return formatNumber(meters, meters < 10 ? 1 : 0) + ' m';
+            }
 
-});
+            function formatArea(m2) {
+                if (m2 == null || !isFinite(m2)) return 'N/D';
+                if (m2 >= 10000) return formatNumber(m2 / 10000, 4) + ' ha (' + formatNumber(m2, 0) + ' m²)';
+                return formatNumber(m2, 1) + ' m²';
+            }
 
-map.on("locationerror",function(){
+            function toRad(deg) {
+                return deg * Math.PI / 180;
+            }
 
-    alert("No fue posible obtener la ubicación.");
+            function distanceLatLng(a, b) {
+                return L.latLng(a.lat, a.lng).distanceTo(L.latLng(b.lat, b.lng));
+            }
 
-});
+            function getGeometryRings(geometry) {
+                var rings = [];
+                if (!geometry || !geometry.coordinates) return rings;
+                if (geometry.type === 'Polygon') {
+                    geometry.coordinates.forEach(function (ring) { rings.push(ring); });
+                } else if (geometry.type === 'MultiPolygon') {
+                    geometry.coordinates.forEach(function (polygon) {
+                        polygon.forEach(function (ring) { rings.push(ring); });
+                    });
+                }
+                return rings;
+            }
 
-// ===============================
-// BOTON VISTA GENERAL
-// ===============================
+            function ringSignedAreaMeters(ring) {
+                if (!ring || ring.length < 3) return 0;
+                var area = 0;
+                for (var i = 0; i < ring.length; i++) {
+                    var p1 = ring[i];
+                    var p2 = ring[(i + 1) % ring.length];
+                    area += toRad(p2[0] - p1[0]) * (2 + Math.sin(toRad(p1[1])) + Math.sin(toRad(p2[1])));
+                }
+                return area * EARTH_RADIUS * EARTH_RADIUS / 2;
+            }
 
-document.getElementById("btnInicio").onclick=function(){
+            function polygonAreaMeters(geometry) {
+                if (!geometry || !geometry.coordinates) return 0;
+                var total = 0;
+                if (geometry.type === 'Polygon') {
+                    total += Math.abs(ringSignedAreaMeters(geometry.coordinates[0] || []));
+                    for (var h = 1; h < geometry.coordinates.length; h++) {
+                        total -= Math.abs(ringSignedAreaMeters(geometry.coordinates[h]));
+                    }
+                } else if (geometry.type === 'MultiPolygon') {
+                    geometry.coordinates.forEach(function (polygon) {
+                        total += Math.abs(ringSignedAreaMeters(polygon[0] || []));
+                        for (var h = 1; h < polygon.length; h++) {
+                            total -= Math.abs(ringSignedAreaMeters(polygon[h]));
+                        }
+                    });
+                }
+                return Math.max(0, total);
+            }
 
-    setBounds();
+            function perimeterMeters(geometry) {
+                var rings = getGeometryRings(geometry);
+                var total = 0;
+                rings.forEach(function (ring) {
+                    for (var i = 1; i < ring.length; i++) {
+                        total += L.latLng(ring[i - 1][1], ring[i - 1][0]).distanceTo(L.latLng(ring[i][1], ring[i][0]));
+                    }
+                });
+                return total;
+            }
 
-};
-        </script>        
-    </body>
+            function centroidFromGeometry(geometry, fallbackBounds) {
+                var bestRing = null;
+                var bestArea = 0;
+                getGeometryRings(geometry).forEach(function (ring) {
+                    var area = Math.abs(ringSignedAreaMeters(ring));
+                    if (area > bestArea) {
+                        bestArea = area;
+                        bestRing = ring;
+                    }
+                });
+                if (!bestRing || bestRing.length < 3) {
+                    return fallbackBounds && fallbackBounds.isValid() ? fallbackBounds.getCenter() : null;
+                }
+                var twiceArea = 0;
+                var cx = 0;
+                var cy = 0;
+                for (var i = 0; i < bestRing.length - 1; i++) {
+                    var x0 = bestRing[i][0];
+                    var y0 = bestRing[i][1];
+                    var x1 = bestRing[i + 1][0];
+                    var y1 = bestRing[i + 1][1];
+                    var cross = x0 * y1 - x1 * y0;
+                    twiceArea += cross;
+                    cx += (x0 + x1) * cross;
+                    cy += (y0 + y1) * cross;
+                }
+                if (Math.abs(twiceArea) < 1e-12) {
+                    return fallbackBounds && fallbackBounds.isValid() ? fallbackBounds.getCenter() : L.latLng(bestRing[0][1], bestRing[0][0]);
+                }
+                return L.latLng(cy / (3 * twiceArea), cx / (3 * twiceArea));
+            }
+
+            function buildPredioIndex() {
+                state.predios = [];
+                getQgisLayers().forEach(function (def) {
+                    if (!def.layer.eachLayer) return;
+                    def.layer.eachLayer(function (featureLayer) {
+                        var feature = featureLayer.feature;
+                        var props = feature && feature.properties ? feature.properties : null;
+                        var pk = props ? normalizeText(props.PK_PREDIOS) : '';
+                        if (!pk) return;
+                        var bounds = featureLayer.getBounds ? featureLayer.getBounds() : null;
+                        var centroid = centroidFromGeometry(feature.geometry, bounds);
+                        var entry = {
+                            pk: pk,
+                            nombre: normalizeText(props.PREDIOS || props.NOMBRE || props.Nombre || props.nombre || props.OBJECTID || props.OBJECTID_1 || pk),
+                            feature: feature,
+                            layer: featureLayer,
+                            group: def.layer,
+                            layerName: def.name,
+                            bounds: bounds,
+                            centroid: centroid,
+                            area: polygonAreaMeters(feature.geometry),
+                            perimeter: perimeterMeters(feature.geometry)
+                        };
+                        state.predios.push(entry);
+                        featureLayer.on('click', function () {
+                            if (state.measureMode) return;
+                            selectPredio(entry);
+                        });
+                    });
+                });
+
+                state.predios.sort(function (a, b) {
+                    return String(a.pk).localeCompare(String(b.pk), 'es', { numeric: true, sensitivity: 'base' });
+                });
+
+                el.parcelSelect.innerHTML = '';
+                var emptyOption = document.createElement('option');
+                emptyOption.value = '';
+                emptyOption.textContent = state.predios.length ? 'Seleccione un PK_PREDIOS' : 'No se encontraron PK_PREDIOS';
+                el.parcelSelect.appendChild(emptyOption);
+
+                var fragment = document.createDocumentFragment();
+                state.predios.forEach(function (entry, index) {
+                    entry.index = index;
+                    var option = document.createElement('option');
+                    option.value = String(index);
+                    option.textContent = entry.pk + (entry.nombre && entry.nombre !== entry.pk ? ' — ' + entry.nombre : '') + ' · ' + entry.layerName;
+                    fragment.appendChild(option);
+                });
+                el.parcelSelect.appendChild(fragment);
+                el.parcelCount.textContent = state.predios.length + (state.predios.length === 1 ? ' predio' : ' predios');
+            }
+
+            function resetSelectedStyle() {
+                if (!state.selected) return;
+                try {
+                    if (state.selected.group && state.selected.group.resetStyle) {
+                        state.selected.group.resetStyle(state.selected.layer);
+                    }
+                } catch (err) {}
+            }
+
+            function selectPredio(entry) {
+                if (!entry) return;
+                resetSelectedStyle();
+                state.selected = entry;
+
+                if (entry.group && !map.hasLayer(entry.group)) {
+                    map.addLayer(entry.group);
+                    refreshLayerChecks();
+                }
+
+                if (entry.layer.setStyle) {
+                    entry.layer.setStyle({
+                        color: '#0057ff',
+                        weight: 4,
+                        opacity: 1,
+                        fill: true,
+                        fillColor: '#2f80ed',
+                        fillOpacity: 0.34,
+                        dashArray: ''
+                    });
+                }
+                if (entry.layer.bringToFront) entry.layer.bringToFront();
+
+                if (entry.bounds && entry.bounds.isValid()) {
+                    map.fitBounds(entry.bounds.pad(0.28), { animate: true, maxZoom: 20 });
+                } else if (entry.centroid) {
+                    map.setView(entry.centroid, Math.max(map.getZoom(), 18), { animate: true });
+                }
+
+                var popupHtml = buildPredioPopup(entry);
+                entry.layer.bindPopup(popupHtml, { maxHeight: 420, maxWidth: 360 }).openPopup();
+                el.parcelSelect.value = String(entry.index);
+                updatePredioPanel(entry, true);
+                updateRouteLine();
+            }
+
+            function buildPropertiesRows(properties) {
+                var rows = '';
+                Object.keys(properties || {}).forEach(function (key) {
+                    var value = properties[key];
+                    if (value == null || value === '') return;
+                    rows += '<tr><th>' + escapeHtml(key) + '</th><td>' + escapeHtml(value) + '</td></tr>';
+                });
+                return rows;
+            }
+
+            function buildPredioPopup(entry) {
+                var distance = currentDistanceToSelected(entry);
+                return '<div class="field-popup">' +
+                    '<strong>Predio ' + escapeHtml(entry.pk) + '</strong>' +
+                    '<table>' +
+                    '<tr><th>Área</th><td>' + escapeHtml(formatArea(entry.area)) + '</td></tr>' +
+                    '<tr><th>Perímetro</th><td>' + escapeHtml(formatDistance(entry.perimeter)) + '</td></tr>' +
+                    '<tr><th>Centroide</th><td>' + escapeHtml(formatLatLng(entry.centroid)) + '</td></tr>' +
+                    '<tr><th>Distancia GPS</th><td>' + escapeHtml(formatDistance(distance)) + '</td></tr>' +
+                    buildPropertiesRows(entry.feature.properties) +
+                    '</table>' +
+                    '</div>';
+            }
+
+            function formatLatLng(latlng) {
+                if (!latlng) return 'N/D';
+                return formatNumber(latlng.lat, 6) + ', ' + formatNumber(latlng.lng, 6);
+            }
+
+            function currentDistanceToSelected(entry) {
+                var target = entry || state.selected;
+                if (!target || !target.centroid || !state.lastLocation) return null;
+                return state.lastLocation.latlng.distanceTo(target.centroid);
+            }
+
+            function updatePredioPanel(entry, openPanel) {
+                if (!entry) {
+                    el.panelTitle.textContent = 'Seleccione un predio';
+                    el.panelSubtitle.textContent = 'La información del predio aparecerá aquí.';
+                    el.infoGrid.innerHTML = '';
+                    return;
+                }
+                var distance = currentDistanceToSelected(entry);
+                el.panelTitle.textContent = entry.nombre || ('Predio ' + entry.pk);
+                el.panelSubtitle.textContent = 'PK_PREDIOS: ' + entry.pk + ' · ' + entry.layerName;
+                el.infoGrid.innerHTML = [
+                    infoCard('PK_PREDIOS', entry.pk),
+                    infoCard('Nombre', entry.nombre || 'N/D'),
+                    infoCard('Área', formatArea(entry.area), 'wide'),
+                    infoCard('Perímetro', formatDistance(entry.perimeter)),
+                    infoCard('Distancia', formatDistance(distance)),
+                    infoCard('Centroide', formatLatLng(entry.centroid), 'wide')
+                ].join('');
+                if (openPanel) setPanelOpen(true);
+            }
+
+            function infoCard(label, value, extraClass) {
+                return '<div class="field-info-card ' + (extraClass || '') + '"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong></div>';
+            }
+
+            function setPanelOpen(open) {
+                el.infoPanel.classList.toggle('open', !!open);
+                el.panelToggle.textContent = open ? 'Ocultar' : 'Ver';
+            }
+
+            function buildLayerPanel() {
+                el.layerList.innerHTML = '';
+                getQgisLayers().forEach(function (def, index) {
+                    addLayerCheck(def.name, map.hasLayer(def.layer), function (checked) {
+                        if (checked) map.addLayer(def.layer);
+                        else map.removeLayer(def.layer);
+                    }, 'qgis-layer-' + index);
+                });
+                addLayerCheck('Puntos de referencia', map.hasLayer(state.pointsLayer), function (checked) {
+                    if (checked) map.addLayer(state.pointsLayer);
+                    else map.removeLayer(state.pointsLayer);
+                }, 'app-points');
+                addLayerCheck('Mediciones', map.hasLayer(state.measureLayer), function (checked) {
+                    if (checked) map.addLayer(state.measureLayer);
+                    else map.removeLayer(state.measureLayer);
+                }, 'app-measure');
+                addLayerCheck('Ruta al predio', map.hasLayer(state.routeLayer), function (checked) {
+                    if (checked) map.addLayer(state.routeLayer);
+                    else map.removeLayer(state.routeLayer);
+                }, 'app-route');
+            }
+
+            function addLayerCheck(name, checked, onChange, id) {
+                var label = document.createElement('label');
+                label.className = 'field-check-row';
+                label.htmlFor = id;
+                label.innerHTML = '<span>' + escapeHtml(name) + '</span><input id="' + escapeHtml(id) + '" type="checkbox" ' + (checked ? 'checked' : '') + '>';
+                var input = label.querySelector('input');
+                input.addEventListener('change', function () { onChange(input.checked); });
+                el.layerList.appendChild(label);
+            }
+
+            function refreshLayerChecks() {
+                buildLayerPanel();
+            }
+
+            function toggleFollow() {
+                if (state.watchId != null) {
+                    navigator.geolocation.clearWatch(state.watchId);
+                    state.watchId = null;
+                    el.followBtn.classList.remove('active');
+                    updateGpsStatus('GPS detenido');
+                    return;
+                }
+                if (!navigator.geolocation) {
+                    updateGpsStatus('GPS no disponible en este navegador');
+                    return;
+                }
+                el.followBtn.classList.add('active');
+                updateGpsStatus('Solicitando GPS...');
+                state.gpsPanDone = false;
+                state.watchId = navigator.geolocation.watchPosition(onGpsPosition, onGpsError, {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 15000
+                });
+            }
+
+            function onGpsPosition(position) {
+                var coords = position.coords;
+                var latlng = L.latLng(coords.latitude, coords.longitude);
+                state.lastLocation = {
+                    latlng: latlng,
+                    accuracy: coords.accuracy,
+                    speed: coords.speed,
+                    heading: coords.heading,
+                    altitude: coords.altitude,
+                    timestamp: position.timestamp
+                };
+
+                if (!state.gpsMarker) {
+                    state.gpsMarker = L.circleMarker(latlng, {
+                        radius: 9,
+                        color: '#ffffff',
+                        weight: 3,
+                        fillColor: '#1769e0',
+                        fillOpacity: 1,
+                        interactive: false,
+                        pane: 'markerPane'
+                    }).addTo(map);
+                } else {
+                    state.gpsMarker.setLatLng(latlng);
+                }
+
+                if (!state.gpsAccuracy) {
+                    state.gpsAccuracy = L.circle(latlng, {
+                        radius: coords.accuracy || 0,
+                        color: '#1769e0',
+                        weight: 1,
+                        fillColor: '#1769e0',
+                        fillOpacity: 0.12,
+                        interactive: false
+                    }).addTo(map);
+                } else {
+                    state.gpsAccuracy.setLatLng(latlng);
+                    state.gpsAccuracy.setRadius(coords.accuracy || 0);
+                }
+
+                if (state.watchId != null) {
+                    var targetZoom = Math.max(map.getZoom(), 18);
+                    if (!state.gpsPanDone) {
+                        map.setView(latlng, targetZoom, { animate: true });
+                        state.gpsPanDone = true;
+                    } else {
+                        map.panTo(latlng, { animate: true });
+                    }
+                }
+
+                updateGpsStatus();
+                updatePredioPanel(state.selected, false);
+                updateRouteLine();
+            }
+
+            function onGpsError(error) {
+                var message = 'No fue posible obtener GPS';
+                if (error && error.code === 1) message = 'Permiso de ubicación denegado';
+                if (error && error.code === 2) message = 'Ubicación no disponible';
+                if (error && error.code === 3) message = 'Tiempo de espera GPS agotado';
+                updateGpsStatus(message);
+                el.followBtn.classList.remove('active');
+            }
+
+            function updateGpsStatus(message) {
+                if (message) {
+                    el.gpsStatus.textContent = message;
+                    return;
+                }
+                if (!state.lastLocation) {
+                    el.gpsStatus.textContent = 'GPS inactivo';
+                    return;
+                }
+                var loc = state.lastLocation;
+                var speedKmh = loc.speed == null || isNaN(loc.speed) ? 'N/D' : formatNumber(loc.speed * 3.6, 1) + ' km/h';
+                var heading = loc.heading == null || isNaN(loc.heading) ? 'N/D' : formatNumber(loc.heading, 0) + '°';
+                var altitude = loc.altitude == null || isNaN(loc.altitude) ? 'N/D' : formatNumber(loc.altitude, 1) + ' m';
+                el.gpsStatus.textContent = 'Precisión ' + formatDistance(loc.accuracy) + ' · Vel. ' + speedKmh + ' · Rumbo ' + heading + ' · Alt. ' + altitude;
+            }
+
+            function startCompassWithPermission() {
+                if (!window.DeviceOrientationEvent) {
+                    el.compassText.textContent = 'N/D';
+                    return;
+                }
+                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                    DeviceOrientationEvent.requestPermission().then(function (statePermission) {
+                        if (statePermission === 'granted') startCompassListeners();
+                    }).catch(function () {
+                        el.compassText.textContent = 'Sin permiso';
+                    });
+                } else {
+                    startCompassListeners();
+                }
+            }
+
+            function startCompassListeners() {
+                if (state.compassStarted) return;
+                state.compassStarted = true;
+                window.addEventListener('deviceorientationabsolute', onDeviceOrientation, true);
+                window.addEventListener('deviceorientation', onDeviceOrientation, true);
+                el.compassText.textContent = '...';
+            }
+
+            function onDeviceOrientation(event) {
+                var heading = null;
+                if (typeof event.webkitCompassHeading === 'number') {
+                    heading = event.webkitCompassHeading;
+                } else if (typeof event.alpha === 'number') {
+                    heading = 360 - event.alpha;
+                }
+                if (heading == null || isNaN(heading)) return;
+                heading = (heading % 360 + 360) % 360;
+                el.compassNeedle.style.transform = 'rotate(' + heading + 'deg)';
+                el.compassText.textContent = formatNumber(heading, 0) + '°';
+            }
+
+            function toggleMeasure() {
+                state.measureMode = !state.measureMode;
+                el.measureBtn.classList.toggle('active', state.measureMode);
+                el.measureInfo.classList.toggle('visible', state.measureMode || state.measurePoints.length > 0);
+                if (state.measureMode) {
+                    el.measureInfo.textContent = state.measurePoints.length ? 'Toque el siguiente punto · Total ' + formatDistance(state.measureTotal) : 'Toque el primer punto para medir';
+                } else if (state.measurePoints.length > 0) {
+                    el.measureInfo.textContent = 'Medición pausada · Total ' + formatDistance(state.measureTotal);
+                } else {
+                    el.measureInfo.classList.remove('visible');
+                }
+            }
+
+            function addMeasurePoint(latlng) {
+                if (!map.hasLayer(state.measureLayer)) map.addLayer(state.measureLayer);
+                var count = state.measurePoints.length + 1;
+                var last = state.measurePoints[state.measurePoints.length - 1];
+                var marker = L.circleMarker(latlng, {
+                    radius: 6,
+                    color: '#10221b',
+                    weight: 2,
+                    fillColor: '#f59f00',
+                    fillOpacity: 1
+                }).addTo(state.measureLayer);
+                marker.bindTooltip(String(count), { permanent: true, direction: 'top', className: 'field-measure-label' });
+
+                if (last) {
+                    var segment = last.distanceTo(latlng);
+                    state.measureTotal += segment;
+                    L.polyline([last, latlng], {
+                        color: '#f59f00',
+                        weight: 4,
+                        opacity: 0.95,
+                        dashArray: '8,8'
+                    }).addTo(state.measureLayer);
+                    var mid = L.latLng((last.lat + latlng.lat) / 2, (last.lng + latlng.lng) / 2);
+                    L.marker(mid, {
+                        interactive: false,
+                        icon: L.divIcon({
+                            className: 'field-measure-label',
+                            html: formatDistance(segment),
+                            iconSize: null
+                        })
+                    }).addTo(state.measureLayer);
+                    el.measureInfo.textContent = 'Último ' + formatDistance(segment) + ' · Acumulado ' + formatDistance(state.measureTotal);
+                } else {
+                    state.measureTotal = 0;
+                    el.measureInfo.textContent = 'Primer punto registrado. Toque el segundo punto.';
+                }
+                state.measurePoints.push(latlng);
+                el.measureInfo.classList.add('visible');
+            }
+
+            function clearMeasure() {
+                state.measurePoints = [];
+                state.measureTotal = 0;
+                state.measureLayer.clearLayers();
+                el.measureInfo.textContent = state.measureMode ? 'Toque el primer punto para medir' : 'Medición borrada';
+                el.measureInfo.classList.toggle('visible', state.measureMode);
+            }
+
+            function captureCurrentPosition(callback) {
+                if (state.lastLocation) {
+                    callback(state.lastLocation);
+                    return;
+                }
+                if (!navigator.geolocation) {
+                    alert('Este navegador no permite obtener ubicación GPS.');
+                    return;
+                }
+                updateGpsStatus('Capturando ubicación para el punto...');
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    onGpsPosition(position);
+                    callback(state.lastLocation);
+                }, onGpsError, {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 15000
+                });
+            }
+
+            function openNewPointModal() {
+                captureCurrentPosition(function (location) {
+                    state.pendingPointLocation = location;
+                    el.pointForm.reset();
+                    el.pointCategory.value = 'Entrada';
+                    el.pointModal.classList.add('open');
+                    setTimeout(function () { el.pointName.focus(); }, 50);
+                });
+            }
+
+            function closePointModal() {
+                el.pointModal.classList.remove('open');
+                state.pendingPointLocation = null;
+            }
+
+            function handlePointSubmit(event) {
+                event.preventDefault();
+                var location = state.pendingPointLocation;
+                if (!location) return;
+                var now = new Date();
+                var file = el.pointPhoto.files && el.pointPhoto.files[0] ? el.pointPhoto.files[0] : null;
+                readPhoto(file).then(function (photoData) {
+                    var point = {
+                        id: 'pt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+                        nombre: normalizeText(el.pointName.value) || 'Punto sin nombre',
+                        categoria: el.pointCategory.value,
+                        fecha: now.toLocaleDateString('es-CO'),
+                        hora: now.toLocaleTimeString('es-CO'),
+                        latitud: location.latlng.lat,
+                        longitud: location.latlng.lng,
+                        precision: location.accuracy,
+                        altitud: location.altitude,
+                        velocidad: location.speed,
+                        rumbo: location.heading,
+                        fotografia: photoData || '',
+                        observaciones: normalizeText(el.pointObs.value)
+                    };
+                    state.points.push(point);
+                    savePoints();
+                    renderPoints();
+                    closePointModal();
+                    var marker = state.pointMarkers[point.id];
+                    if (marker) marker.openPopup();
+                }).catch(function () {
+                    alert('No se pudo cargar la fotografía. Intente con otra imagen.');
+                });
+            }
+
+            function readPhoto(file) {
+                return new Promise(function (resolve, reject) {
+                    if (!file) {
+                        resolve('');
+                        return;
+                    }
+                    if (!/^image\//.test(file.type)) {
+                        reject(new Error('Archivo no es imagen'));
+                        return;
+                    }
+                    var reader = new FileReader();
+                    reader.onload = function (event) {
+                        compressDataUrl(event.target.result).then(resolve).catch(function () { resolve(event.target.result); });
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            function compressDataUrl(dataUrl) {
+                return new Promise(function (resolve, reject) {
+                    var img = new Image();
+                    img.onload = function () {
+                        var max = 1280;
+                        var width = img.width;
+                        var height = img.height;
+                        if (width > height && width > max) {
+                            height = Math.round(height * max / width);
+                            width = max;
+                        } else if (height >= width && height > max) {
+                            width = Math.round(width * max / height);
+                            height = max;
+                        }
+                        var canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        var ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.78));
+                    };
+                    img.onerror = reject;
+                    img.src = dataUrl;
+                });
+            }
+
+            function savePoints() {
+                try {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.points));
+                } catch (err) {
+                    alert('No se pudo guardar en LocalStorage. Puede que la fotografía sea muy pesada.');
+                }
+            }
+
+            function loadPoints() {
+                try {
+                    var saved = localStorage.getItem(STORAGE_KEY);
+                    state.points = saved ? JSON.parse(saved) : [];
+                    if (!Array.isArray(state.points)) state.points = [];
+                } catch (err) {
+                    state.points = [];
+                }
+                renderPoints();
+            }
+
+            function categoryLetter(category) {
+                return normalizeText(category).slice(0, 1) || 'P';
+            }
+
+            function renderPoints() {
+                state.pointsLayer.clearLayers();
+                state.pointMarkers = {};
+                state.points.forEach(function (point) {
+                    var marker = L.marker([point.latitud, point.longitud], {
+                        icon: L.divIcon({
+                            className: 'field-point-icon',
+                            html: '<span>' + escapeHtml(categoryLetter(point.categoria)) + '</span>',
+                            iconSize: [34, 34],
+                            iconAnchor: [17, 34],
+                            popupAnchor: [0, -32]
+                        })
+                    }).addTo(state.pointsLayer);
+                    marker.bindPopup(buildPointPopup(point), { maxWidth: 340 });
+                    state.pointMarkers[point.id] = marker;
+                });
+            }
+
+            function buildPointPopup(point) {
+                var photo = point.fotografia ? '<img class="field-popup-photo" alt="Fotografía del punto" src="' + point.fotografia + '">' : '';
+                return '<div class="field-popup"><strong>' + escapeHtml(point.nombre) + '</strong>' +
+                    '<table>' +
+                    '<tr><th>Categoría</th><td>' + escapeHtml(point.categoria) + '</td></tr>' +
+                    '<tr><th>Fecha</th><td>' + escapeHtml(point.fecha) + ' ' + escapeHtml(point.hora) + '</td></tr>' +
+                    '<tr><th>Latitud</th><td>' + escapeHtml(formatNumber(point.latitud, 7)) + '</td></tr>' +
+                    '<tr><th>Longitud</th><td>' + escapeHtml(formatNumber(point.longitud, 7)) + '</td></tr>' +
+                    '<tr><th>Precisión</th><td>' + escapeHtml(formatDistance(point.precision)) + '</td></tr>' +
+                    '<tr><th>Altitud</th><td>' + escapeHtml(point.altitud == null ? 'N/D' : formatNumber(point.altitud, 1) + ' m') + '</td></tr>' +
+                    '<tr><th>Rumbo</th><td>' + escapeHtml(point.rumbo == null ? 'N/D' : formatNumber(point.rumbo, 0) + '°') + '</td></tr>' +
+                    '<tr><th>Observaciones</th><td>' + escapeHtml(point.observaciones || '') + '</td></tr>' +
+                    '</table>' + photo +
+                    '<div class="field-popup-actions">' +
+                    '<button type="button" onclick="fieldApp.editPointPhoto(' + escapeHtml(JSON.stringify(point.id)) + ')">Foto</button>' +
+                    '<button type="button" class="danger" onclick="fieldApp.deletePoint(' + escapeHtml(JSON.stringify(point.id)) + ')">Eliminar</button>' +
+                    '</div></div>';
+            }
+
+            function editPointPhoto(id) {
+                var input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.capture = 'environment';
+                input.addEventListener('change', function () {
+                    var file = input.files && input.files[0] ? input.files[0] : null;
+                    readPhoto(file).then(function (photo) {
+                        var point = findPoint(id);
+                        if (!point) return;
+                        point.fotografia = photo;
+                        savePoints();
+                        renderPoints();
+                        var marker = state.pointMarkers[id];
+                        if (marker) marker.openPopup();
+                    });
+                });
+                input.click();
+            }
+
+            function deletePoint(id) {
+                if (!confirm('¿Eliminar este punto de referencia?')) return;
+                state.points = state.points.filter(function (point) { return point.id !== id; });
+                savePoints();
+                renderPoints();
+            }
+
+            function findPoint(id) {
+                for (var i = 0; i < state.points.length; i++) {
+                    if (state.points[i].id === id) return state.points[i];
+                }
+                return null;
+            }
+
+            function drawRouteToPredio() {
+                if (!state.selected || !state.selected.centroid) {
+                    alert('Seleccione primero un predio.');
+                    return;
+                }
+                if (!state.lastLocation) {
+                    alert('Active el GPS para calcular la ruta al predio.');
+                    return;
+                }
+                if (!map.hasLayer(state.routeLayer)) map.addLayer(state.routeLayer);
+                updateRouteLine(true);
+                if (state.routeLine) map.fitBounds(state.routeLine.getBounds().pad(0.28), { animate: true });
+            }
+
+            function updateRouteLine(createIfMissing) {
+                if (!state.selected || !state.selected.centroid || !state.lastLocation) return;
+                var points = [state.lastLocation.latlng, state.selected.centroid];
+                if (!state.routeLine && createIfMissing) {
+                    state.routeLine = L.polyline(points, {
+                        color: '#f59f00',
+                        weight: 5,
+                        opacity: 0.95,
+                        dashArray: '10,10'
+                    }).addTo(state.routeLayer);
+                } else if (state.routeLine) {
+                    state.routeLine.setLatLngs(points);
+                }
+            }
+
+            function exportGeoJSON() {
+                var geojson = {
+                    type: 'FeatureCollection',
+                    name: 'puntos_referencia_campo',
+                    features: state.points.map(function (point) {
+                        return {
+                            type: 'Feature',
+                            properties: Object.assign({}, point),
+                            geometry: {
+                                type: 'Point',
+                                coordinates: [Number(point.longitud), Number(point.latitud), point.altitud == null ? 0 : Number(point.altitud)]
+                            }
+                        };
+                    })
+                };
+                downloadText('puntos_referencia.geojson', 'application/geo+json;charset=utf-8', JSON.stringify(geojson, null, 2));
+            }
+
+            function exportKML() {
+                var placemarks = state.points.map(function (point) {
+                    var description = '<![CDATA[' +
+                        '<strong>' + escapeHtml(point.nombre) + '</strong><br>' +
+                        'Categoría: ' + escapeHtml(point.categoria) + '<br>' +
+                        'Fecha: ' + escapeHtml(point.fecha) + ' ' + escapeHtml(point.hora) + '<br>' +
+                        'Precisión: ' + escapeHtml(formatDistance(point.precision)) + '<br>' +
+                        'Observaciones: ' + escapeHtml(point.observaciones || '') +
+                        (point.fotografia ? '<br><img src="' + point.fotografia + '" width="260">' : '') +
+                        ']]>';
+                    return '<Placemark><name>' + xmlEscape(point.nombre) + '</name><description>' + description + '</description><Point><coordinates>' +
+                        point.longitud + ',' + point.latitud + ',' + (point.altitud || 0) +
+                        '</coordinates></Point></Placemark>';
+                }).join('\n');
+                var kml = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+                    '<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>Puntos de referencia</name>' + placemarks + '</Document></kml>';
+                downloadText('puntos_referencia.kml', 'application/vnd.google-earth.kml+xml;charset=utf-8', kml);
+            }
+
+            function exportCSV() {
+                var headers = ['id','nombre','categoria','fecha','hora','latitud','longitud','precision','altitud','velocidad','rumbo','observaciones','fotografia'];
+                var rows = [headers.join(',')];
+                state.points.forEach(function (point) {
+                    rows.push(headers.map(function (key) { return csvCell(point[key]); }).join(','));
+                });
+                downloadText('puntos_referencia.csv', 'text/csv;charset=utf-8', rows.join('\n'));
+            }
+
+            function csvCell(value) {
+                var text = value == null ? '' : String(value);
+                return '"' + text.replace(/"/g, '""') + '"';
+            }
+
+            function xmlEscape(value) {
+                return String(value == null ? '' : value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&apos;');
+            }
+
+            function downloadText(filename, mime, text) {
+                var blob = new Blob([text], { type: mime });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(function () {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 0);
+            }
+
+            function importGeoJSONFile(file) {
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function (event) {
+                    try {
+                        var data = JSON.parse(event.target.result);
+                        var features = data.type === 'FeatureCollection' ? data.features : [data];
+                        var imported = 0;
+                        features.forEach(function (feature) {
+                            if (!feature || !feature.geometry || feature.geometry.type !== 'Point') return;
+                            var coords = feature.geometry.coordinates;
+                            var props = feature.properties || {};
+                            var now = new Date();
+                            var point = {
+                                id: props.id || ('pt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)),
+                                nombre: props.nombre || props.name || props.Nombre || 'Punto importado',
+                                categoria: props.categoria || props.category || 'Observación',
+                                fecha: props.fecha || now.toLocaleDateString('es-CO'),
+                                hora: props.hora || now.toLocaleTimeString('es-CO'),
+                                latitud: Number(coords[1]),
+                                longitud: Number(coords[0]),
+                                precision: props.precision == null ? props.accuracy : props.precision,
+                                altitud: props.altitud == null ? coords[2] : props.altitud,
+                                velocidad: props.velocidad || '',
+                                rumbo: props.rumbo || '',
+                                fotografia: props.fotografia || props.foto || props.photo || '',
+                                observaciones: props.observaciones || props.description || props.descripcion || ''
+                            };
+                            if (!isFinite(point.latitud) || !isFinite(point.longitud)) return;
+                            if (findPoint(point.id)) point.id = 'pt_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+                            state.points.push(point);
+                            imported += 1;
+                        });
+                        savePoints();
+                        renderPoints();
+                        alert('Importación finalizada: ' + imported + ' punto(s).');
+                    } catch (err) {
+                        alert('El archivo no es un GeoJSON válido.');
+                    }
+                    el.importFile.value = '';
+                };
+                reader.readAsText(file);
+            }
+
+            function bindEvents() {
+                el.parcelSelect.addEventListener('change', function () {
+                    var index = parseInt(el.parcelSelect.value, 10);
+                    if (!isNaN(index)) selectPredio(state.predios[index]);
+                });
+                el.layersBtn.addEventListener('click', function () { refreshLayerChecks(); el.layerPanel.classList.add('open'); });
+                el.closeLayers.addEventListener('click', function () { el.layerPanel.classList.remove('open'); });
+                el.layerPanel.addEventListener('click', function (event) { if (event.target === el.layerPanel) el.layerPanel.classList.remove('open'); });
+                el.followBtn.addEventListener('click', toggleFollow);
+                el.measureBtn.addEventListener('click', toggleMeasure);
+                el.clearMeasureBtn.addEventListener('click', clearMeasure);
+                el.newPointBtn.addEventListener('click', openNewPointModal);
+                el.routeBtn.addEventListener('click', drawRouteToPredio);
+                el.exportBtn.addEventListener('click', function () { el.exportPanel.classList.add('open'); });
+                el.closeExport.addEventListener('click', function () { el.exportPanel.classList.remove('open'); });
+                el.exportPanel.addEventListener('click', function (event) { if (event.target === el.exportPanel) el.exportPanel.classList.remove('open'); });
+                el.exportGeojson.addEventListener('click', exportGeoJSON);
+                el.exportKml.addEventListener('click', exportKML);
+                el.exportCsv.addEventListener('click', exportCSV);
+                el.importBtn.addEventListener('click', function () { el.importFile.click(); });
+                el.importFile.addEventListener('change', function () { importGeoJSONFile(el.importFile.files[0]); });
+                el.panelHandle.addEventListener('click', function () { setPanelOpen(!el.infoPanel.classList.contains('open')); });
+                el.panelToggle.addEventListener('click', function () { setPanelOpen(!el.infoPanel.classList.contains('open')); });
+                bindPanelSwipe();
+                el.compass.addEventListener('click', startCompassWithPermission);
+                el.closePointModal.addEventListener('click', closePointModal);
+                el.cancelPoint.addEventListener('click', closePointModal);
+                el.pointModal.addEventListener('click', function (event) { if (event.target === el.pointModal) closePointModal(); });
+                el.pointForm.addEventListener('submit', handlePointSubmit);
+                map.on('click', function (event) {
+                    if (state.measureMode) addMeasurePoint(event.latlng);
+                });
+                window.addEventListener('resize', function () { setTimeout(function () { map.invalidateSize(); }, 120); });
+            }
+
+            function bindPanelSwipe() {
+                var startY = null;
+                el.infoPanel.addEventListener('touchstart', function (event) {
+                    if (!event.touches || !event.touches.length) return;
+                    startY = event.touches[0].clientY;
+                }, { passive: true });
+                el.infoPanel.addEventListener('touchend', function (event) {
+                    if (startY == null || !event.changedTouches || !event.changedTouches.length) return;
+                    var delta = event.changedTouches[0].clientY - startY;
+                    if (delta > 35) setPanelOpen(false);
+                    if (delta < -35) setPanelOpen(true);
+                    startY = null;
+                }, { passive: true });
+            }
+
+            function init() {
+                cacheElements();
+                buildLayerPanel();
+                buildPredioIndex();
+                loadPoints();
+                bindEvents();
+                startCompassListeners();
+                updatePredioPanel(null, false);
+                setTimeout(function () { map.invalidateSize(); }, 250);
+            }
+
+            window.fieldApp = {
+                editPointPhoto: editPointPhoto,
+                deletePoint: deletePoint,
+                exportGeoJSON: exportGeoJSON,
+                exportKML: exportKML,
+                exportCSV: exportCSV
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+        })();
+        </script>
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
 </html>

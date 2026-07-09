@@ -691,13 +691,6 @@
             <div class="field-status-chip" id="fieldGpsStatus">GPS inactivo</div>
             <div class="field-measure-chip" id="fieldMeasureInfo">Medición lista</div>
 
-            <button type="button" class="field-compass" id="fieldCompass" aria-label="Brújula. Tocar para activar en iPhone">
-                <span class="field-compass-ring">
-                    <span class="field-compass-n">N</span>
-                    <span class="field-compass-needle" id="fieldCompassNeedle"></span>
-                </span>
-                <span class="field-compass-text" id="fieldCompassText">--°</span>
-            </button>
 
             <nav class="field-toolbar" aria-label="Herramientas de campo">
                 <button type="button" class="field-btn blue" id="fieldFollowBtn" aria-label="Seguir mi ubicación">
@@ -1632,9 +1625,6 @@
                 el.panelTitle = byId('fieldPanelTitle');
                 el.panelSubtitle = byId('fieldPanelSubtitle');
                 el.infoGrid = byId('fieldInfoGrid');
-                el.compass = byId('fieldCompass');
-                el.compassNeedle = byId('fieldCompassNeedle');
-                el.compassText = byId('fieldCompassText');
                 el.pointModal = byId('fieldPointModal');
                 el.pointForm = byId('fieldPointForm');
                 el.closePointModal = byId('fieldClosePointModal');
@@ -1643,6 +1633,20 @@
                 el.pointCategory = byId('fieldPointCategory');
                 el.pointObs = byId('fieldPointObs');
                 el.pointPhoto = byId('fieldPointPhoto');
+            }
+
+            var INTEREST_LAYER_PRIORITY = {
+                Prediosadquiridosconfinesambientales7_3: 1,
+                Prediosadquiridosconfinesambientales6_4: 2,
+                Prediosadquiridosconfinesambientales5_5: 3,
+                Prediosadquiridosconfinesambientales4_6: 4,
+                Prediosadquiridosconfinesambientales3_7: 5,
+                Prediosadquiridosconfinesambientales2_8: 6,
+                Prediosadquiridosconfinesambientales1_9: 7
+            };
+
+            function getInterestPriority(layerName) {
+                return INTEREST_LAYER_PRIORITY[layerName] || 999;
             }
 
             function getQgisLayers() {
@@ -1805,6 +1809,7 @@
                             layer: featureLayer,
                             group: def.layer,
                             layerName: def.name,
+                            interestPriority: getInterestPriority(def.name),
                             bounds: bounds,
                             centroid: centroid,
                             area: polygonAreaMeters(feature.geometry),
@@ -1819,6 +1824,9 @@
                 });
 
                 state.predios.sort(function (a, b) {
+                    if (a.interestPriority !== b.interestPriority) {
+                        return a.interestPriority - b.interestPriority;
+                    }
                     return String(a.pk).localeCompare(String(b.pk), 'es', { numeric: true, sensitivity: 'base' });
                 });
 
@@ -1833,7 +1841,7 @@
                     entry.index = index;
                     var option = document.createElement('option');
                     option.value = String(index);
-                    option.textContent = entry.pk + (entry.nombre && entry.nombre !== entry.pk ? ' — ' + entry.nombre : '') + ' · ' + entry.layerName;
+                    option.textContent = (entry.interestPriority < 999 ? '★ ' : '') + entry.pk + (entry.nombre && entry.nombre !== entry.pk ? ' — ' + entry.nombre : '') + ' · ' + entry.layerName;
                     fragment.appendChild(option);
                 });
                 el.parcelSelect.appendChild(fragment);
@@ -2393,7 +2401,11 @@
                 return null;
             }
 
-            function drawRouteToPredio() {
+            function toggleRouteToPredio() {
+                if (state.routeLine) {
+                    clearRouteLine();
+                    return;
+                }
                 if (!state.selected || !state.selected.centroid) {
                     alert('Seleccione primero un predio.');
                     return;
@@ -2404,7 +2416,20 @@
                 }
                 if (!map.hasLayer(state.routeLayer)) map.addLayer(state.routeLayer);
                 updateRouteLine(true);
+                el.routeBtn.classList.add('active');
+                el.routeBtn.setAttribute('aria-pressed', 'true');
+                var label = el.routeBtn.querySelector('span:last-child');
+                if (label) label.textContent = 'Quitar';
                 if (state.routeLine) map.fitBounds(state.routeLine.getBounds().pad(0.28), { animate: true });
+            }
+
+            function clearRouteLine() {
+                state.routeLayer.clearLayers();
+                state.routeLine = null;
+                el.routeBtn.classList.remove('active');
+                el.routeBtn.setAttribute('aria-pressed', 'false');
+                var label = el.routeBtn.querySelector('span:last-child');
+                if (label) label.textContent = 'Ir';
             }
 
             function updateRouteLine(createIfMissing) {
@@ -2552,7 +2577,7 @@
                 el.measureBtn.addEventListener('click', toggleMeasure);
                 el.clearMeasureBtn.addEventListener('click', clearMeasure);
                 el.newPointBtn.addEventListener('click', openNewPointModal);
-                el.routeBtn.addEventListener('click', drawRouteToPredio);
+                el.routeBtn.addEventListener('click', toggleRouteToPredio);
                 el.exportBtn.addEventListener('click', function () { el.exportPanel.classList.add('open'); });
                 el.closeExport.addEventListener('click', function () { el.exportPanel.classList.remove('open'); });
                 el.exportPanel.addEventListener('click', function (event) { if (event.target === el.exportPanel) el.exportPanel.classList.remove('open'); });
@@ -2564,7 +2589,6 @@
                 el.panelHandle.addEventListener('click', function () { setPanelOpen(!el.infoPanel.classList.contains('open')); });
                 el.panelToggle.addEventListener('click', function () { setPanelOpen(!el.infoPanel.classList.contains('open')); });
                 bindPanelSwipe();
-                el.compass.addEventListener('click', startCompassWithPermission);
                 el.closePointModal.addEventListener('click', closePointModal);
                 el.cancelPoint.addEventListener('click', closePointModal);
                 el.pointModal.addEventListener('click', function (event) { if (event.target === el.pointModal) closePointModal(); });
@@ -2596,7 +2620,6 @@
                 buildPredioIndex();
                 loadPoints();
                 bindEvents();
-                startCompassListeners();
                 updatePredioPanel(null, false);
                 setTimeout(function () { map.invalidateSize(); }, 250);
             }
@@ -2616,6 +2639,5 @@
             }
         })();
         </script>
-    <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
-</body>
+    </body>
 </html>

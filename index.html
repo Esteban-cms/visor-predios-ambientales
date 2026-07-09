@@ -929,7 +929,9 @@
 			layer.on('popupopen', function(e) {
 				addClassToPopupIfMedia(content, e.popup);
 			});
-			layer.bindPopup(content, { maxHeight: 400 });
+			if (!feature.properties || !Object.prototype.hasOwnProperty.call(feature.properties, 'PK_PREDIOS')) {
+                layer.bindPopup(content, { maxHeight: 400 });
+            }
         }
 
         function style_EstructuraPredial_1_0() {
@@ -1017,7 +1019,9 @@
 			layer.on('popupopen', function(e) {
 				addClassToPopupIfMedia(content, e.popup);
 			});
-			layer.bindPopup(content, { maxHeight: 400 });
+			if (!feature.properties || !Object.prototype.hasOwnProperty.call(feature.properties, 'PK_PREDIOS')) {
+                layer.bindPopup(content, { maxHeight: 400 });
+            }
         }
 
         function style_Veredas_2_0() {
@@ -1103,7 +1107,9 @@
 			layer.on('popupopen', function(e) {
 				addClassToPopupIfMedia(content, e.popup);
 			});
-			layer.bindPopup(content, { maxHeight: 400 });
+			if (!feature.properties || !Object.prototype.hasOwnProperty.call(feature.properties, 'PK_PREDIOS')) {
+                layer.bindPopup(content, { maxHeight: 400 });
+            }
         }
 
         function style_Prediosadquiridosconfinesambientales7_3_0() {
@@ -1191,7 +1197,9 @@
 			layer.on('popupopen', function(e) {
 				addClassToPopupIfMedia(content, e.popup);
 			});
-			layer.bindPopup(content, { maxHeight: 400 });
+			if (!feature.properties || !Object.prototype.hasOwnProperty.call(feature.properties, 'PK_PREDIOS')) {
+                layer.bindPopup(content, { maxHeight: 400 });
+            }
         }
 
         function style_Prediosadquiridosconfinesambientales6_4_0() {
@@ -1279,7 +1287,9 @@
 			layer.on('popupopen', function(e) {
 				addClassToPopupIfMedia(content, e.popup);
 			});
-			layer.bindPopup(content, { maxHeight: 400 });
+			if (!feature.properties || !Object.prototype.hasOwnProperty.call(feature.properties, 'PK_PREDIOS')) {
+                layer.bindPopup(content, { maxHeight: 400 });
+            }
         }
 
         function style_Prediosadquiridosconfinesambientales5_5_0() {
@@ -1367,7 +1377,9 @@
 			layer.on('popupopen', function(e) {
 				addClassToPopupIfMedia(content, e.popup);
 			});
-			layer.bindPopup(content, { maxHeight: 400 });
+			if (!feature.properties || !Object.prototype.hasOwnProperty.call(feature.properties, 'PK_PREDIOS')) {
+                layer.bindPopup(content, { maxHeight: 400 });
+            }
         }
 
         function style_Prediosadquiridosconfinesambientales4_6_0() {
@@ -1413,7 +1425,9 @@
 			layer.on('popupopen', function(e) {
 				addClassToPopupIfMedia(content, e.popup);
 			});
-			layer.bindPopup(content, { maxHeight: 400 });
+			if (!feature.properties || !Object.prototype.hasOwnProperty.call(feature.properties, 'PK_PREDIOS')) {
+                layer.bindPopup(content, { maxHeight: 400 });
+            }
         }
 
         function style_Prediosadquiridosconfinesambientales3_7_0() {
@@ -1459,7 +1473,9 @@
 			layer.on('popupopen', function(e) {
 				addClassToPopupIfMedia(content, e.popup);
 			});
-			layer.bindPopup(content, { maxHeight: 400 });
+			if (!feature.properties || !Object.prototype.hasOwnProperty.call(feature.properties, 'PK_PREDIOS')) {
+                layer.bindPopup(content, { maxHeight: 400 });
+            }
         }
 
         function style_Prediosadquiridosconfinesambientales2_8_0() {
@@ -1505,7 +1521,9 @@
 			layer.on('popupopen', function(e) {
 				addClassToPopupIfMedia(content, e.popup);
 			});
-			layer.bindPopup(content, { maxHeight: 400 });
+			if (!feature.properties || !Object.prototype.hasOwnProperty.call(feature.properties, 'PK_PREDIOS')) {
+                layer.bindPopup(content, { maxHeight: 400 });
+            }
         }
 
         function style_Prediosadquiridosconfinesambientales1_9_0() {
@@ -1823,8 +1841,13 @@
                             perimeter: perimeterMeters(feature.geometry)
                         };
                         state.predios.push(entry);
-                        featureLayer.on('click', function () {
+                        featureLayer.on('click', function (event) {
                             if (state.measureMode) return;
+                            if (event && event.originalEvent) {
+                                L.DomEvent.stopPropagation(event.originalEvent);
+                                L.DomEvent.preventDefault(event.originalEvent);
+                            }
+                            map.closePopup();
                             selectPredio(entry);
                         });
                     });
@@ -1873,6 +1896,11 @@
                     map.addLayer(entry.group);
                     refreshLayerChecks();
                 }
+
+                if (entry.layer.unbindPopup) {
+                    entry.layer.unbindPopup();
+                }
+                map.closePopup();
 
                 if (entry.layer.setStyle) {
                     entry.layer.setStyle({
@@ -1999,6 +2027,20 @@
             function refreshLayerChecks() {
                 buildLayerPanel();
             }
+
+            function disablePredioPopups() {
+                getQgisLayers().forEach(function (def) {
+                    if (!def.layer.eachLayer) return;
+                    def.layer.eachLayer(function (featureLayer) {
+                        var props = featureLayer.feature && featureLayer.feature.properties ? featureLayer.feature.properties : {};
+                        if (Object.prototype.hasOwnProperty.call(props, 'PK_PREDIOS') && featureLayer.unbindPopup) {
+                            featureLayer.unbindPopup();
+                        }
+                    });
+                });
+                map.closePopup();
+            }
+
 
             function toggleFollow() {
                 if (state.watchId != null) {
@@ -2626,6 +2668,7 @@
                     if (state.measureMode) addMeasurePoint(event.latlng);
                 });
                 window.addEventListener('resize', function () { setTimeout(function () { map.invalidateSize(); }, 120); });
+                map.on('layeradd', function () { disablePredioPopups(); });
             }
 
             function bindPanelSwipe() {
@@ -2647,6 +2690,7 @@
                 cacheElements();
                 buildLayerPanel();
                 buildPredioIndex();
+                disablePredioPopups();
                 loadPoints();
                 bindEvents();
                 updatePredioPanel(null, false);

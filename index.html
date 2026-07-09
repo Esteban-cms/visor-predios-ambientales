@@ -1,51 +1,98 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
-        <meta name="mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <link rel="stylesheet" href="css/leaflet.css">
-        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
-        <link rel="stylesheet" href="css/qgis2web.css">
-        <link rel="stylesheet" href="css/fontawesome-all.min.css">
-        <link rel="stylesheet" href="css/leaflet.photon.css">
-        <style>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="stylesheet" href="css/leaflet.css">
+    <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+    <link rel="stylesheet" href="css/qgis2web.css">
+    <link rel="stylesheet" href="css/fontawesome-all.min.css">
+    <link rel="stylesheet" href="css/leaflet.photon.css">
+    <style>
         html, body, #map {
             width: 100%;
             height: 100%;
-            padding: 0;
             margin: 0;
+            padding: 0;
         }
-        </style>
-        <title></title>
-    </head>
-    <body>
-        <div id="map">
-        </div>
-        <script src="js/qgis2web_expressions.js"></script>
-        <script src="js/leaflet.js"></script>
-        <script src="js/L.Control.Layers.Tree.min.js"></script>
-        <script src="js/leaflet.rotatedMarker.js"></script>
-        <script src="js/leaflet.pattern.js"></script>
-        <script src="js/leaflet-hash.js"></script>
-        <script src="js/Autolinker.min.js"></script>
-        <script src="js/rbush.min.js"></script>
-        <script src="js/labelgun.min.js"></script>
-        <script src="js/labels.js"></script>
-        <script src="js/leaflet.photon.js"></script>
-        <script src="data/EstructuraPredial_1.js"></script>
-        <script src="data/Veredas_2.js"></script>
-        <script src="data/Prediosadquiridosconfinesambientales7_3.js"></script>
-        <script src="data/Prediosadquiridosconfinesambientales6_4.js"></script>
-        <script src="data/Prediosadquiridosconfinesambientales5_5.js"></script>
-        <script src="data/Prediosadquiridosconfinesambientales4_6.js"></script>
-        <script src="data/Prediosadquiridosconfinesambientales3_7.js"></script>
-        <script src="data/Prediosadquiridosconfinesambientales2_8.js"></script>
-        <script src="data/Prediosadquiridosconfinesambientales1_9.js"></script>
-        <script>
-        var map = L.map('map', {
+        #panelBuscador{
+            position:absolute;
+            top:10px;
+            left:10px;
+            z-index:9999;
+            background:#ffffff;
+            padding:12px;
+            width:260px;
+            border-radius:10px;
+            box-shadow:0 2px 10px rgba(0,0,0,.35);
+            font-family:Arial, Helvetica, sans-serif;
+        }
+        #panelBuscador h3{
+            margin:0 0 10px 0;
+            font-size:16px;
+            text-align:center;
+        }
+        #buscarPredio{
+            width:100%;
+            padding:8px;
+            margin-bottom:8px;
+            border:1px solid #ccc;
+            border-radius:5px;
+        }
+        #btnUbicacion,
+        #btnInicio{
+            width:100%;
+            padding:8px;
+            margin-top:6px;
+            border:none;
+            border-radius:5px;
+            background:#2E7D32;
+            color:white;
+            cursor:pointer;
+            font-size:14px;
+        }
+        #btnUbicacion:hover,
+        #btnInicio:hover{
+            background:#1B5E20;
+        }
+    </style>
+    <title>Predios Ambientales</title>
+</head>
+<body>
+<div id="panelBuscador">
+    <h3>🏡 Predios Ambientales</h3>
+    <select id="buscarPredio">
+        <option value="">Seleccione un predio</option>
+    </select>
+    <button id="btnUbicacion">📍 Mi ubicación</button>
+    <button id="btnInicio">🏠 Vista general</button>
+</div>
+<div id="map"></div>
+<script src="js/qgis2web_expressions.js"></script>
+<script src="js/leaflet.js"></script>
+<script src="js/L.Control.Layers.Tree.min.js"></script>
+<script src="js/leaflet.rotatedMarker.js"></script>
+<script src="js/leaflet.pattern.js"></script>
+<script src="js/leaflet-hash.js"></script>
+<script src="js/Autolinker.min.js"></script>
+<script src="js/rbush.min.js"></script>
+<script src="js/labelgun.min.js"></script>
+<script src="js/labels.js"></script>
+<script src="js/leaflet.photon.js"></script>
+<script src="data/EstructuraPredial_1.js"></script>
+<script src="data/Veredas_2.js"></script>
+<script src="data/Prediosadquiridosconfinesambientales7_3.js"></script>
+<script src="data/Prediosadquiridosconfinesambientales6_4.js"></script>
+<script src="data/Prediosadquiridosconfinesambientales5_5.js"></script>
+<script src="data/Prediosadquiridosconfinesambientales4_6.js"></script>
+<script src="data/Prediosadquiridosconfinesambientales3_7.js"></script>
+<script src="data/Prediosadquiridosconfinesambientales2_8.js"></script>
+<script src="data/Prediosadquiridosconfinesambientales1_9.js"></script>
+<script>
+var map = L.map('map', {
             zoomControl:false, maxZoom:28, minZoom:1
         }).fitBounds([[7.079041223751184,-75.60160157487567],[7.130030702398053,-75.49171924839166]]);
         var hash = new L.Hash(map);
@@ -776,6 +823,117 @@
         map.on("layerremove", function(){
             resetLabels([layer_Veredas_2]);
         });
+	// ===============================
+// BUSCADOR DE PREDIOS
+// ===============================
+
+var capasPredios = [
+    layer_Prediosadquiridosconfinesambientales1_9,
+    layer_Prediosadquiridosconfinesambientales2_8,
+    layer_Prediosadquiridosconfinesambientales3_7,
+    layer_Prediosadquiridosconfinesambientales4_6,
+    layer_Prediosadquiridosconfinesambientales5_5,
+    layer_Prediosadquiridosconfinesambientales6_4,
+    layer_Prediosadquiridosconfinesambientales7_3
+];
+
+var selector = document.getElementById("buscarPredio");
+
+capasPredios.forEach(function(capa){
+
+    capa.eachLayer(function(l){
+
+        var pk = l.feature.properties.PK_PREDIOS;
+
+        if(pk){
+
+            var opcion = document.createElement("option");
+            opcion.value = pk;
+            opcion.text = pk;
+
+            selector.appendChild(opcion);
+
+        }
+
+    });
+
+});
+
+var resaltado = null;
+
+selector.addEventListener("change",function(){
+
+    var pk = this.value;
+
+    if(resaltado){
+        map.removeLayer(resaltado);
+    }
+
+    capasPredios.forEach(function(capa){
+
+        capa.eachLayer(function(l){
+
+            if(l.feature.properties.PK_PREDIOS==pk){
+
+                map.fitBounds(l.getBounds());
+
+                resaltado=L.geoJSON(l.toGeoJSON(),{
+
+                    style:{
+                        color:"#ffff00",
+                        weight:5,
+                        fillOpacity:0.15
+                    }
+
+                }).addTo(map);
+
+            }
+
+        });
+
+    });
+
+});
+
+// ===============================
+// BOTON MI UBICACION
+// ===============================
+
+document.getElementById("btnUbicacion").onclick=function(){
+
+    map.locate({
+        setView:true,
+        maxZoom:18
+    });
+
+};
+
+map.on("locationfound",function(e){
+
+    L.circleMarker(e.latlng,{
+        radius:8,
+        color:"blue",
+        fillColor:"#00BFFF",
+        fillOpacity:1
+    }).addTo(map);
+
+});
+
+map.on("locationerror",function(){
+
+    alert("No fue posible obtener la ubicación.");
+
+});
+
+// ===============================
+// BOTON VISTA GENERAL
+// ===============================
+
+document.getElementById("btnInicio").onclick=function(){
+
+    setBounds();
+
+};
         </script>        
     </body>
 </html>

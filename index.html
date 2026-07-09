@@ -693,8 +693,11 @@
 
 
             <nav class="field-toolbar" aria-label="Herramientas de campo">
-                <button type="button" class="field-btn blue" id="fieldFollowBtn" aria-label="Seguir mi ubicación">
+                <button type="button" class="field-btn blue" id="fieldFollowBtn" aria-label="Activar o detener GPS">
                     <span class="field-icon"><i class="fas fa-location-arrow"></i></span><span>GPS</span>
+                </button>
+                <button type="button" class="field-btn blue" id="fieldHomeBtn" aria-label="Volver a mi ubicación">
+                    <span class="field-icon"><i class="fas fa-home"></i></span><span>Casa</span>
                 </button>
                 <button type="button" class="field-btn" id="fieldMeasureBtn" aria-label="Medir distancia">
                     <span class="field-icon"><i class="fas fa-ruler"></i></span><span>Medir</span>
@@ -1605,6 +1608,7 @@
                 el.closeLayers = byId('fieldCloseLayers');
                 el.layerList = byId('fieldLayerList');
                 el.followBtn = byId('fieldFollowBtn');
+                el.homeBtn = byId('fieldHomeBtn');
                 el.gpsStatus = byId('fieldGpsStatus');
                 el.measureBtn = byId('fieldMeasureBtn');
                 el.clearMeasureBtn = byId('fieldClearMeasureBtn');
@@ -2056,19 +2060,41 @@
                     state.gpsAccuracy.setRadius(coords.accuracy || 0);
                 }
 
-                if (state.watchId != null) {
-                    var targetZoom = Math.max(map.getZoom(), 18);
-                    if (!state.gpsPanDone) {
-                        map.setView(latlng, targetZoom, { animate: true });
-                        state.gpsPanDone = true;
-                    } else {
-                        map.panTo(latlng, { animate: true });
-                    }
+                if (state.watchId != null && !state.gpsPanDone) {
+                    centerMapOnLocation(latlng);
+                    state.gpsPanDone = true;
                 }
 
                 updateGpsStatus();
                 updatePredioPanel(state.selected, false);
                 updateRouteLine();
+            }
+
+            function centerMapOnLocation(latlng) {
+                if (!latlng) return;
+                map.setView(latlng, Math.max(map.getZoom(), 18), { animate: true });
+            }
+
+            function centerOnMyLocation() {
+                if (state.lastLocation && state.lastLocation.latlng) {
+                    centerMapOnLocation(state.lastLocation.latlng);
+                    return;
+                }
+                if (!navigator.geolocation) {
+                    alert('Este navegador no permite obtener ubicación GPS.');
+                    return;
+                }
+                updateGpsStatus('Buscando tu ubicación...');
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    onGpsPosition(position);
+                    if (state.lastLocation && state.lastLocation.latlng) {
+                        centerMapOnLocation(state.lastLocation.latlng);
+                    }
+                }, onGpsError, {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 15000
+                });
             }
 
             function onGpsError(error) {
@@ -2574,6 +2600,7 @@
                 el.closeLayers.addEventListener('click', function () { el.layerPanel.classList.remove('open'); });
                 el.layerPanel.addEventListener('click', function (event) { if (event.target === el.layerPanel) el.layerPanel.classList.remove('open'); });
                 el.followBtn.addEventListener('click', toggleFollow);
+                el.homeBtn.addEventListener('click', centerOnMyLocation);
                 el.measureBtn.addEventListener('click', toggleMeasure);
                 el.clearMeasureBtn.addEventListener('click', clearMeasure);
                 el.newPointBtn.addEventListener('click', openNewPointModal);

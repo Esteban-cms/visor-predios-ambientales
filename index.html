@@ -1804,6 +1804,9 @@
                         var props = feature && feature.properties ? feature.properties : null;
                         var pk = props ? normalizeText(props.PK_PREDIOS) : '';
                         if (!pk) return;
+                        if (featureLayer.unbindPopup) {
+                            featureLayer.unbindPopup();
+                        }
                         var bounds = featureLayer.getBounds ? featureLayer.getBounds() : null;
                         var centroid = centroidFromGeometry(feature.geometry, bounds);
                         var entry = {
@@ -1890,8 +1893,7 @@
                     map.setView(entry.centroid, Math.max(map.getZoom(), 18), { animate: true });
                 }
 
-                var popupHtml = buildPredioPopup(entry);
-                entry.layer.bindPopup(popupHtml, { maxHeight: 420, maxWidth: 360 }).openPopup();
+                map.closePopup();
                 el.parcelSelect.value = String(entry.index);
                 updatePredioPanel(entry, true);
                 updateRouteLine();
